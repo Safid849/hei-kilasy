@@ -1,6 +1,7 @@
 package hei.school;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -111,7 +112,8 @@ public class SubmissionController {
         if (body.get("points") == null) {
             return ResponseEntity.badRequest().body(Map.of("error", "points est obligatoire"));
         }
-        double points = ((Number) body.get("points")).doubleValue();
+        Number pointsValue = (Number) body.get("points");
+        BigDecimal requestedPoints = new BigDecimal(pointsValue.toString());
         String feedback = (String) body.get("feedback");
 
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
@@ -125,9 +127,11 @@ public class SubmissionController {
         Map<String, Object> row = rows.get(0);
         BigDecimal maxPoints = (BigDecimal) row.get("max_points");
         double max = maxPoints.doubleValue();
-        if (points < 0 || points > max) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Les points doivent être entre 0 et " + max));
+        if (requestedPoints.signum() < 0 || requestedPoints.compareTo(maxPoints) > 0) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Les points doivent être entre 0 et " + max));
         }
+        BigDecimal points = requestedPoints.setScale(2, RoundingMode.HALF_UP);
 
         jdbcTemplate.update("UPDATE submission SET raw_points = ?, feedback = ?, graded_at = now() WHERE id = ?",
                 points, feedback, id);
@@ -135,7 +139,7 @@ public class SubmissionController {
         LocalDate deadline = ((java.sql.Date) row.get("deadline")).toLocalDate();
         LocalDateTime submittedAt = ((Timestamp) row.get("submitted_at")).toLocalDateTime();
         long lateDays = GradeCalculator.lateDays(deadline, submittedAt);
-        BigDecimal grade = GradeCalculator.calculate(BigDecimal.valueOf(points), maxPoints, lateDays);
+        BigDecimal grade = GradeCalculator.calculate(points, maxPoints, lateDays);
         boolean late = lateDays > 0;
 
         // notify the student by email

@@ -26,9 +26,7 @@ public final class GradeCalculator {
         }
 
         Duration delay = Duration.between(cutoff, submittedAt);
-        long completeDays = delay.toDays();
-        boolean hasPartialDay = !delay.minusDays(completeDays).isZero();
-        return Math.max(1, completeDays + (hasPartialDay ? 1 : 0));
+        return delay.toDays() + 1;
     }
 
     public static BigDecimal calculate(BigDecimal rawPoints, BigDecimal maxPoints, long lateDays) {

@@ -3,6 +3,7 @@ package hei.school;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -36,14 +37,17 @@ class GradeCalculatorTest {
 
     @Test
     void eachStartedTwentyFourHourPeriodCountsAtItsBoundary() {
-        assertEquals(1, GradeCalculator.lateDays(DEADLINE, DEADLINE.plusDays(1).atStartOfDay()));
-        assertEquals(2, GradeCalculator.lateDays(DEADLINE,
-                DEADLINE.plusDays(2).atStartOfDay().plusNanos(1)));
+        LocalDateTime cutoff = DEADLINE.plusDays(1).atStartOfDay();
+
+        assertEquals(1, GradeCalculator.lateDays(DEADLINE, cutoff));
+        assertEquals(1, GradeCalculator.lateDays(DEADLINE, cutoff.plus(Duration.ofDays(1)).minusNanos(1)));
+        assertEquals(2, GradeCalculator.lateDays(DEADLINE, cutoff.plusDays(1)));
+        assertEquals(2, GradeCalculator.lateDays(DEADLINE, cutoff.plusDays(1).plusNanos(1)));
     }
 
     @Test
     void threeDaysLateIncursThirtyPercentPenalty() {
-        long lateDays = GradeCalculator.lateDays(DEADLINE, DEADLINE.plusDays(4).atStartOfDay());
+        long lateDays = GradeCalculator.lateDays(DEADLINE, DEADLINE.plusDays(3).atStartOfDay());
 
         assertEquals(3, lateDays);
         assertEquals(new BigDecimal("11.2"), GradeCalculator.calculate(RAW_POINTS, MAX_POINTS, lateDays));
@@ -57,7 +61,7 @@ class GradeCalculatorTest {
 
     @Test
     void penaltyIsCappedAtFiftyPercent() {
-        long lateDays = GradeCalculator.lateDays(DEADLINE, DEADLINE.plusDays(9).atStartOfDay());
+        long lateDays = GradeCalculator.lateDays(DEADLINE, DEADLINE.plusDays(8).atStartOfDay());
 
         assertEquals(8, lateDays);
         assertEquals(new BigDecimal("8.0"), GradeCalculator.calculate(RAW_POINTS, MAX_POINTS, lateDays));
